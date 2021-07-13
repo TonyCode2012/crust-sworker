@@ -49,7 +49,7 @@ void srd_change()
     }
 
     // Check if validation has been applied or not
-    if (!wl->report_has_validated_proof())
+    if (!Validator::get_instance()->report_has_validated_proof())
     {
         return;
     }
@@ -116,7 +116,7 @@ crust_status_t srd_increase(const char *uuid)
     Defer def_uuid([&p_uuid_u](void) { free(p_uuid_u); });
 
     // Check if validation has been applied or not
-    if (!wl->report_has_validated_proof())
+    if (!Validator::get_instance()->report_has_validated_proof())
     {
         return CRUST_VALIDATE_HIGH_PRIORITY;
     }

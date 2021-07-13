@@ -11,6 +11,7 @@
 #include "sgx_thread.h"
 
 #include "Workload.h"
+#include "Validator.h"
 #include "EUtils.h"
 #include "PathHelper.h"
 #include "SafeLock.h"

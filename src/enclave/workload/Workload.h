@@ -20,8 +20,6 @@
 #include "Srd.h"
 #include "Parameter.h"
 
-#define VALIDATE_PROOF_MAX_NUM 2
-
 std::map<char, std::string> file_status_2_name = {
     {FILE_STATUS_PENDING, FILE_TYPE_PENDING},
     {FILE_STATUS_UNVERIFIED, FILE_TYPE_UNVERIFIED},
@@ -67,10 +65,6 @@ public:
     crust_status_t restore_file_info();
 
     // For report
-    void report_add_validated_srd_proof();
-    void report_add_validated_file_proof();
-    void report_reset_validated_proof();
-    bool report_has_validated_proof();
     void set_report_file_flag(bool flag);
     bool get_report_file_flag();
     void set_restart_flag();
@@ -192,11 +186,6 @@ private:
     size_t report_height = 0; // Identity report height, Used to check current block head out-of-date
     sgx_thread_mutex_t report_height_mutex = SGX_THREAD_MUTEX_INITIALIZER;
     int restart_flag = 0;// Used to indicate whether it is the first report after restart
-
-    int validated_srd_proof = 0; // Generating workreport will decrease this value, while validating will increase it
-    sgx_thread_mutex_t validated_srd_mutex = SGX_THREAD_MUTEX_INITIALIZER;
-    int validated_file_proof = 0; // Generating workreport will decrease this value, while validating will increase it
-    sgx_thread_mutex_t validated_file_mutex = SGX_THREAD_MUTEX_INITIALIZER;
 
     bool report_files; // True indicates reporting files this turn, false means not report
     json::JSON srd_info_json; // Srd info

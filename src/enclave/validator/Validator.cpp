@@ -1,28 +1,31 @@
 #include "Validator.h"
 
-// Srd related variables
-std::vector<uint8_t *> g_del_srd_v;
-sgx_thread_mutex_t g_del_srd_v_mutex = SGX_THREAD_MUTEX_INITIALIZER;
-std::map<int, uint8_t *> g_validate_srd_m;
-std::map<int, uint8_t *>::const_iterator g_validate_srd_m_iter;
-sgx_thread_mutex_t g_validate_srd_m_iter_mutex = SGX_THREAD_MUTEX_INITIALIZER;
-uint32_t g_validated_srd_num = 0;
-sgx_thread_mutex_t g_validated_srd_num_mutex = SGX_THREAD_MUTEX_INITIALIZER;
-// File related method and variables
-std::vector<json::JSON *> g_changed_files_v;
-sgx_thread_mutex_t g_changed_files_v_mutex = SGX_THREAD_MUTEX_INITIALIZER;
-std::map<std::string, json::JSON> g_validate_files_m;
-std::map<std::string, json::JSON>::const_iterator g_validate_files_m_iter;
-sgx_thread_mutex_t g_validate_files_m_iter_mutex = SGX_THREAD_MUTEX_INITIALIZER;
-uint32_t g_validated_files_num = 0;
-sgx_thread_mutex_t g_validated_files_num_mutex = SGX_THREAD_MUTEX_INITIALIZER;
-uint32_t g_validate_random = 0;
-sgx_thread_mutex_t g_validate_random_mutex = SGX_THREAD_MUTEX_INITIALIZER;
+Validator *Validator::validator = NULL;
+sgx_thread_mutex_t g_validator_mutex = SGX_THREAD_MUTEX_INITIALIZER;
+
+/**
+ * @description: Get Validator single instance
+ * @return: Validator single instance
+ */
+Validator *Validator::get_instance()
+{
+    if (Validator::validator == NULL)
+    {
+        sgx_thread_mutex_lock(&g_validator_mutex);
+        if (Validator::validator == NULL)
+        {
+            Validator::validator = new Validator();
+        }
+        sgx_thread_mutex_unlock(&g_validator_mutex);
+    }
+
+    return Validator::validator;
+}
 
 /**
  * @description: validate srd disk
  */
-void validate_srd()
+void Validator::validate_srd()
 {
     crust_status_t crust_status = CRUST_SUCCESS;
     Workload *wl = Workload::get_instance();
@@ -64,39 +67,39 @@ void validate_srd()
 
     // ----- Validate SRD ----- //
     sgx_status_t sgx_status = SGX_SUCCESS;
-    sgx_thread_mutex_lock(&g_validate_srd_m_iter_mutex);
-    g_validate_srd_m.insert(tmp_validate_srd_m.begin(), tmp_validate_srd_m.end());
+    sgx_thread_mutex_lock(&this->validate_srd_m_iter_mutex);
+    this->validate_srd_m.insert(tmp_validate_srd_m.begin(), tmp_validate_srd_m.end());
     tmp_validate_srd_m.clear();
-    g_validate_srd_m_iter = g_validate_srd_m.begin();
-    sgx_thread_mutex_unlock(&g_validate_srd_m_iter_mutex);
+    this->validate_srd_m_iter = this->validate_srd_m.begin();
+    sgx_thread_mutex_unlock(&this->validate_srd_m_iter_mutex);
     // Generate validate random flag
-    sgx_thread_mutex_lock(&g_validate_random_mutex);
-    sgx_read_rand((uint8_t *)&g_validate_random, sizeof(g_validate_random));
-    sgx_thread_mutex_unlock(&g_validate_random_mutex);
+    sgx_thread_mutex_lock(&this->validate_random_mutex);
+    sgx_read_rand((uint8_t *)&this->validate_random, sizeof(this->validate_random));
+    sgx_thread_mutex_unlock(&this->validate_random_mutex);
     // Reset index and finish number
-    sgx_thread_mutex_lock(&g_validated_srd_num_mutex);
-    g_validated_srd_num = 0;
-    sgx_thread_mutex_unlock(&g_validated_srd_num_mutex);
-    for (size_t i = 0; i < g_validate_srd_m.size(); i++)
+    sgx_thread_mutex_lock(&this->validated_srd_num_mutex);
+    this->validated_srd_num = 0;
+    sgx_thread_mutex_unlock(&this->validated_srd_num_mutex);
+    for (size_t i = 0; i < this->validate_srd_m.size(); i++)
     {
         // If ocall failed, add srd to deleted buffer
         if (SGX_SUCCESS != (sgx_status = ocall_recall_validate_srd()))
         {
             log_err("Invoke validate srd task failed! Error code:%lx\n", sgx_status);
             // Increase validate srd iterator
-            sgx_thread_mutex_lock(&g_validate_srd_m_iter_mutex);
-            uint32_t srd_index = g_validate_srd_m_iter->first;
-            uint8_t *p_srd = g_validate_srd_m_iter->second;
-            g_validate_srd_m_iter++;
-            sgx_thread_mutex_unlock(&g_validate_srd_m_iter_mutex);
+            sgx_thread_mutex_lock(&this->validate_srd_m_iter_mutex);
+            uint32_t srd_index = this->validate_srd_m_iter->first;
+            uint8_t *p_srd = this->validate_srd_m_iter->second;
+            this->validate_srd_m_iter++;
+            sgx_thread_mutex_unlock(&this->validate_srd_m_iter_mutex);
             // Increase validated srd finish num
-            sgx_thread_mutex_lock(&g_validated_srd_num_mutex);
-            g_validated_srd_num++;
-            sgx_thread_mutex_unlock(&g_validated_srd_num_mutex);
+            sgx_thread_mutex_lock(&this->validated_srd_num_mutex);
+            this->validated_srd_num++;
+            sgx_thread_mutex_unlock(&this->validated_srd_num_mutex);
             // Push current g_hash to delete buffer
-            sgx_thread_mutex_lock(&g_del_srd_v_mutex);
-            g_del_srd_v.push_back(p_srd);
-            sgx_thread_mutex_unlock(&g_del_srd_v_mutex);
+            sgx_thread_mutex_lock(&this->del_srd_v_mutex);
+            this->del_srd_v.push_back(p_srd);
+            sgx_thread_mutex_unlock(&this->del_srd_v_mutex);
             wl->add_srd_to_deleted_buffer(srd_index);
         }
     }
@@ -107,11 +110,11 @@ void validate_srd()
     size_t timeout = (size_t)REPORT_SLOT * BLOCK_INTERVAL * 1000000;
     while (true)
     {
-        SafeLock sl(g_validated_srd_num_mutex);
+        SafeLock sl(this->validated_srd_num_mutex);
         sl.lock();
-        if (g_validated_srd_num >= g_validate_srd_m.size())
+        if (this->validated_srd_num >= this->validate_srd_m.size())
         {
-            wl->report_add_validated_srd_proof();
+            this->report_add_validated_srd_proof();
             break;
         }
         sl.unlock();
@@ -126,38 +129,38 @@ void validate_srd()
     }
 
     // Delete failed srd metadata
-    sgx_thread_mutex_lock(&g_del_srd_v_mutex);
-    for (auto hash : g_del_srd_v)
+    sgx_thread_mutex_lock(&this->del_srd_v_mutex);
+    for (auto hash : this->del_srd_v)
     {
         std::string del_path = hexstring_safe(hash, SRD_LENGTH);
         ocall_delete_folder_or_file(&crust_status, del_path.c_str(), STORE_TYPE_SRD);
     }
     // Clear deleted srd buffer
-    g_del_srd_v.clear();
-    sgx_thread_mutex_unlock(&g_del_srd_v_mutex);
+    this->del_srd_v.clear();
+    sgx_thread_mutex_unlock(&this->del_srd_v_mutex);
 
     // Clear validate buffer
-    sgx_thread_mutex_lock(&g_validate_srd_m_iter_mutex);
-    g_validate_srd_m.clear();
-    sgx_thread_mutex_unlock(&g_validate_srd_m_iter_mutex);
+    sgx_thread_mutex_lock(&this->validate_srd_m_iter_mutex);
+    this->validate_srd_m.clear();
+    sgx_thread_mutex_unlock(&this->validate_srd_m_iter_mutex);
 }
 
 /**
  * @description: Validate srd real
  */
-void validate_srd_real()
+void Validator::validate_srd_real()
 {
     // Get current validate random
-    sgx_thread_mutex_lock(&g_validate_random_mutex);
-    uint32_t cur_validate_random = g_validate_random;
-    sgx_thread_mutex_unlock(&g_validate_random_mutex);
+    sgx_thread_mutex_lock(&this->validate_random_mutex);
+    uint32_t cur_validate_random = this->validate_random;
+    sgx_thread_mutex_unlock(&this->validate_random_mutex);
 
     // Get srd info from iterator
-    SafeLock sl_iter(g_validate_srd_m_iter_mutex);
+    SafeLock sl_iter(this->validate_srd_m_iter_mutex);
     sl_iter.lock();
-    uint32_t srd_index = g_validate_srd_m_iter->first;
-    uint8_t *p_srd = g_validate_srd_m_iter->second;
-    g_validate_srd_m_iter++;
+    uint32_t srd_index = this->validate_srd_m_iter->first;
+    uint8_t *p_srd = this->validate_srd_m_iter->second;
+    this->validate_srd_m_iter++;
     sl_iter.unlock();
 
     // Get g_hash corresponding path
@@ -166,23 +169,24 @@ void validate_srd_real()
     Workload *wl = Workload::get_instance();
     bool deleted = false;
 
-    Defer finish_defer([&cur_validate_random, &deleted, &p_srd, &srd_index, &wl](void) {
+    auto that = this;
+    Defer finish_defer([&cur_validate_random, &deleted, &p_srd, &srd_index, &wl, &that](void) {
         // Get current validate random
-        sgx_thread_mutex_lock(&g_validate_random_mutex);
-        uint32_t now_validate_srd_random = g_validate_random;
-        sgx_thread_mutex_unlock(&g_validate_random_mutex);
+        sgx_thread_mutex_lock(&that->validate_random_mutex);
+        uint32_t now_validate_srd_random = that->validate_random;
+        sgx_thread_mutex_unlock(&that->validate_random_mutex);
         // Check if validata random is the same
         if (cur_validate_random == now_validate_srd_random)
         {
-            sgx_thread_mutex_lock(&g_validated_srd_num_mutex);
-            g_validated_srd_num++;
-            sgx_thread_mutex_unlock(&g_validated_srd_num_mutex);
+            sgx_thread_mutex_lock(&that->validated_srd_num_mutex);
+            that->validated_srd_num++;
+            sgx_thread_mutex_unlock(&that->validated_srd_num_mutex);
             // Deal with result
             if (deleted)
             {
-                sgx_thread_mutex_lock(&g_del_srd_v_mutex);
-                g_del_srd_v.push_back(p_srd);
-                sgx_thread_mutex_unlock(&g_del_srd_v_mutex);
+                sgx_thread_mutex_lock(&that->del_srd_v_mutex);
+                that->del_srd_v.push_back(p_srd);
+                sgx_thread_mutex_unlock(&that->del_srd_v_mutex);
                 wl->add_srd_to_deleted_buffer(srd_index);
             }
         }
@@ -258,7 +262,7 @@ void validate_srd_real()
 /**
  * @description: Validate Meaningful files
  */
-void validate_meaningful_file()
+void Validator::validate_meaningful_file()
 {
     Workload *wl = Workload::get_instance();
 
@@ -302,27 +306,28 @@ void validate_meaningful_file()
     // Used to indicate which meaningful file status has been changed
     // If new file hasn't been verified, skip this validation
     sgx_status_t sgx_status = SGX_SUCCESS;
-    sgx_thread_mutex_lock(&g_validate_files_m_iter_mutex);
-    g_validate_files_m.insert(tmp_validate_files_m.begin(), tmp_validate_files_m.end());
+    sgx_thread_mutex_lock(&this->validate_files_m_iter_mutex);
+    this->validate_files_m.insert(tmp_validate_files_m.begin(), tmp_validate_files_m.end());
     tmp_validate_files_m.clear();
-    g_validate_files_m_iter = g_validate_files_m.begin();
-    sgx_thread_mutex_unlock(&g_validate_files_m_iter_mutex);
-    Defer validate_files([](void) {
+    this->validate_files_m_iter = this->validate_files_m.begin();
+    sgx_thread_mutex_unlock(&this->validate_files_m_iter_mutex);
+    auto that = this;
+    Defer validate_files([&that](void) {
         // Clear validate buffer
-        sgx_thread_mutex_lock(&g_validate_files_m_iter_mutex);
-        g_validate_files_m.clear();
-        sgx_thread_mutex_unlock(&g_validate_files_m_iter_mutex);
+        sgx_thread_mutex_lock(&that->validate_files_m_iter_mutex);
+        that->validate_files_m.clear();
+        sgx_thread_mutex_unlock(&that->validate_files_m_iter_mutex);
     });
     // Generate validate random flag
-    sgx_thread_mutex_lock(&g_validate_random_mutex);
-    sgx_read_rand((uint8_t *)&g_validate_random, sizeof(g_validate_random));
-    sgx_thread_mutex_unlock(&g_validate_random_mutex);
+    sgx_thread_mutex_lock(&this->validate_random_mutex);
+    sgx_read_rand((uint8_t *)&this->validate_random, sizeof(this->validate_random));
+    sgx_thread_mutex_unlock(&this->validate_random_mutex);
     // Reset validate file finish flag
-    sgx_thread_mutex_lock(&g_validated_files_num_mutex);
-    g_validated_files_num = 0;
-    sgx_thread_mutex_unlock(&g_validated_files_num_mutex);
+    sgx_thread_mutex_lock(&this->validated_files_num_mutex);
+    this->validated_files_num = 0;
+    sgx_thread_mutex_unlock(&this->validated_files_num_mutex);
     // Check if IPFS is online
-    if (g_validate_files_m.size() > 0)
+    if (this->validate_files_m.size() > 0)
     {
         bool ipfs_ret = false;
         ocall_ipfs_online(&ipfs_ret);
@@ -331,25 +336,25 @@ void validate_meaningful_file()
             wl->set_report_file_flag(false);
         }
     }
-    for (size_t i = 0; i < g_validate_files_m.size(); i++)
+    for (size_t i = 0; i < this->validate_files_m.size(); i++)
     {
         // If ocall failed, add file to deleted buffer
         if (SGX_SUCCESS != (sgx_status = ocall_recall_validate_file()))
         {
             log_err("Invoke validate file task failed! Error code:%lx\n", sgx_status);
             // Get current file info
-            sgx_thread_mutex_lock(&g_validate_files_m_iter_mutex);
-            json::JSON *file = const_cast<json::JSON *>(&g_validate_files_m_iter->second);
-            g_validate_files_m_iter++;
-            sgx_thread_mutex_unlock(&g_validate_files_m_iter_mutex);
+            sgx_thread_mutex_lock(&this->validate_files_m_iter_mutex);
+            json::JSON *file = const_cast<json::JSON *>(&this->validate_files_m_iter->second);
+            this->validate_files_m_iter++;
+            sgx_thread_mutex_unlock(&this->validate_files_m_iter_mutex);
             // Increase validated files number
-            sgx_thread_mutex_lock(&g_validated_files_num_mutex);
-            g_validated_files_num++;
-            sgx_thread_mutex_unlock(&g_validated_files_num_mutex);
+            sgx_thread_mutex_lock(&this->validated_files_num_mutex);
+            this->validated_files_num++;
+            sgx_thread_mutex_unlock(&this->validated_files_num_mutex);
             // Add file to deleted buffer
-            sgx_thread_mutex_lock(&g_changed_files_v_mutex);
-            g_changed_files_v.push_back(file);
-            sgx_thread_mutex_unlock(&g_changed_files_v_mutex);
+            sgx_thread_mutex_lock(&this->changed_files_v_mutex);
+            this->changed_files_v.push_back(file);
+            sgx_thread_mutex_unlock(&this->changed_files_v_mutex);
         }
     }
 
@@ -359,11 +364,11 @@ void validate_meaningful_file()
     size_t timeout = (size_t)REPORT_SLOT * BLOCK_INTERVAL * 1000000;
     while (true)
     {
-        SafeLock sl(g_validated_files_num_mutex);
+        SafeLock sl(this->validated_files_num_mutex);
         sl.lock();
-        if (g_validated_files_num >= g_validate_files_m.size())
+        if (this->validated_files_num >= this->validate_files_m.size())
         {
-            wl->report_add_validated_file_proof();
+            this->report_add_validated_file_proof();
             break;
         }
         sl.unlock();
@@ -378,11 +383,11 @@ void validate_meaningful_file()
     }
 
     // Change file status
-    sgx_thread_mutex_lock(&g_changed_files_v_mutex);
+    sgx_thread_mutex_lock(&this->changed_files_v_mutex);
     std::vector<json::JSON *> tmp_changed_files_v;
-    tmp_changed_files_v.insert(tmp_changed_files_v.begin(), g_changed_files_v.begin(), g_changed_files_v.end());
-    g_changed_files_v.clear();
-    sgx_thread_mutex_unlock(&g_changed_files_v_mutex);
+    tmp_changed_files_v.insert(tmp_changed_files_v.begin(), this->changed_files_v.begin(), this->changed_files_v.end());
+    this->changed_files_v.clear();
+    sgx_thread_mutex_unlock(&this->changed_files_v_mutex);
     if (tmp_changed_files_v.size() > 0)
     {
         SafeLock sl(wl->file_mutex);
@@ -394,7 +399,7 @@ void validate_meaningful_file()
             if(wl->is_file_dup_nolock(cid, index))
             {
                 long cur_block_num = wl->sealed_files[index][CHAIN_BLOCK_NUMBER].ToInt();
-                long val_block_num = g_validate_files_m[cid][CHAIN_BLOCK_NUMBER].ToInt();
+                long val_block_num = this->validate_files_m[cid][CHAIN_BLOCK_NUMBER].ToInt();
                 // We can get original file and new sealed file(this situation maybe exist)
                 // If these two files are not the same one, cannot delete the file
                 if (cur_block_num == val_block_num)
@@ -432,8 +437,8 @@ void validate_meaningful_file()
                         wl->sealed_files[index][FILE_LOST_INDEX] = -1;
                     }
                     // Reduce valid file
-                    wl->set_file_spec(new_status, g_validate_files_m[cid][FILE_SIZE].ToInt());
-                    wl->set_file_spec(old_status, -g_validate_files_m[cid][FILE_SIZE].ToInt());
+                    wl->set_file_spec(new_status, this->validate_files_m[cid][FILE_SIZE].ToInt());
+                    wl->set_file_spec(old_status, -this->validate_files_m[cid][FILE_SIZE].ToInt());
                     // Sync with APP sealed file info
                     ocall_change_file_type(cid.c_str(), old_status_ptr, new_status_ptr);
                 }
@@ -449,49 +454,50 @@ void validate_meaningful_file()
 /**
  * @description: Validate meaningful files real
  */
-void validate_meaningful_file_real()
+void Validator::validate_meaningful_file_real()
 {
     Workload *wl = Workload::get_instance();
 
     // Get current validate random
-    sgx_thread_mutex_lock(&g_validate_random_mutex);
-    uint32_t cur_validate_random = g_validate_random;
-    sgx_thread_mutex_unlock(&g_validate_random_mutex);
+    sgx_thread_mutex_lock(&this->validate_random_mutex);
+    uint32_t cur_validate_random = this->validate_random;
+    sgx_thread_mutex_unlock(&this->validate_random_mutex);
 
     // Get file info from iterator
-    SafeLock sl_iter(g_validate_files_m_iter_mutex);
+    SafeLock sl_iter(this->validate_files_m_iter_mutex);
     sl_iter.lock();
-    if (g_validate_files_m.size() == 0)
+    if (this->validate_files_m.size() == 0)
     {
         return;
     }
-    std::string cid = g_validate_files_m_iter->first;
-    json::JSON *file = const_cast<json::JSON *>(&g_validate_files_m_iter->second);
-    g_validate_files_m_iter++;
+    std::string cid = this->validate_files_m_iter->first;
+    json::JSON *file = const_cast<json::JSON *>(&this->validate_files_m_iter->second);
+    this->validate_files_m_iter++;
     sl_iter.unlock();
 
     bool changed = false;
     bool lost = false;
     bool deleted = false;
 
-    Defer finish_defer([&cur_validate_random, cid, &deleted, &changed, &file, &wl](void) {
+    auto that = this;
+    Defer finish_defer([&cur_validate_random, cid, &deleted, &changed, &file, &wl, &that](void) {
         // Get current validate random
-        sgx_thread_mutex_lock(&g_validate_random_mutex);
-        uint32_t now_validate_random = g_validate_random;
-        sgx_thread_mutex_unlock(&g_validate_random_mutex);
+        sgx_thread_mutex_lock(&that->validate_random_mutex);
+        uint32_t now_validate_random = that->validate_random;
+        sgx_thread_mutex_unlock(&that->validate_random_mutex);
         // Check if validate random is the same
         if (cur_validate_random == now_validate_random)
         {
             // Increase validated files number
-            sgx_thread_mutex_lock(&g_validated_files_num_mutex);
-            g_validated_files_num++;
-            sgx_thread_mutex_unlock(&g_validated_files_num_mutex);
+            sgx_thread_mutex_lock(&that->validated_files_num_mutex);
+            that->validated_files_num++;
+            sgx_thread_mutex_unlock(&that->validated_files_num_mutex);
             // Deal with result
             if (changed)
             {
-                sgx_thread_mutex_lock(&g_changed_files_v_mutex);
-                g_changed_files_v.push_back(file);
-                sgx_thread_mutex_unlock(&g_changed_files_v_mutex);
+                sgx_thread_mutex_lock(&that->changed_files_v_mutex);
+                that->changed_files_v.push_back(file);
+                sgx_thread_mutex_unlock(&that->changed_files_v_mutex);
             }
             if (deleted)
             {
@@ -611,4 +617,69 @@ void validate_meaningful_file_real()
     {
         changed = true;
     }
+}
+
+/**
+ * @description: add validated srd proof
+ */
+void Validator::report_add_validated_srd_proof()
+{
+    sgx_thread_mutex_lock(&this->validated_srd_mutex);
+    if (this->validated_srd_proof >= VALIDATE_PROOF_MAX_NUM)
+    {
+        this->validated_srd_proof = VALIDATE_PROOF_MAX_NUM;
+    }
+    else
+    {
+        this->validated_srd_proof++;
+    }
+    sgx_thread_mutex_unlock(&this->validated_srd_mutex);
+}
+
+/**
+ * @description: add validated file proof
+ */
+void Validator::report_add_validated_file_proof()
+{
+    sgx_thread_mutex_lock(&this->validated_file_mutex);
+    if (this->validated_file_proof >= VALIDATE_PROOF_MAX_NUM)
+    {
+        this->validated_file_proof = VALIDATE_PROOF_MAX_NUM;
+    }
+    else
+    {
+        this->validated_file_proof++;
+    }
+    sgx_thread_mutex_unlock(&this->validated_file_mutex);
+}
+
+/**
+ * @description: Reset validated proof
+ */
+void Validator::report_reset_validated_proof()
+{
+    sgx_thread_mutex_lock(&this->validated_srd_mutex);
+    this->validated_srd_proof = 0;
+    sgx_thread_mutex_unlock(&this->validated_srd_mutex);
+
+    sgx_thread_mutex_lock(&this->validated_file_mutex);
+    this->validated_file_proof = 0;
+    sgx_thread_mutex_unlock(&this->validated_file_mutex);
+}
+
+/**
+ * @description: Has validated proof
+ * @return: true or false
+ */
+bool Validator::report_has_validated_proof()
+{
+    sgx_thread_mutex_lock(&this->validated_srd_mutex);
+    bool res = (this->validated_srd_proof > 0);
+    sgx_thread_mutex_unlock(&this->validated_srd_mutex);
+
+    sgx_thread_mutex_lock(&this->validated_file_mutex);
+    res = (res && this->validated_file_proof > 0);
+    sgx_thread_mutex_unlock(&this->validated_file_mutex);
+
+    return res;
 }

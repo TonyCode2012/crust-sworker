@@ -14,6 +14,7 @@ std::map<ecall_store_type_t, ecall_store2_f> g_ecall_store2_func_m = {
 void ecall_main_loop()
 {
     Workload *wl = Workload::get_instance();
+    Validator *vl = Validator::get_instance();
     crust_status_t crust_status = CRUST_SUCCESS;
 
     while (true)
@@ -33,11 +34,11 @@ void ecall_main_loop()
 
         // ----- File validate ----- //
         log_debug("Start validating meaningful file\n");
-        validate_meaningful_file();
+        vl->validate_meaningful_file();
 
         // ----- SRD validate ----- //
         log_debug("Start validating srd\n");
-        validate_srd();
+        vl->validate_srd();
 
         // ----- SRD ----- //
         log_debug("Start srd task\n");
@@ -299,7 +300,7 @@ crust_status_t ecall_delete_file(const char *cid)
  */
 void ecall_validate_file()
 {
-    validate_meaningful_file_real();
+    Validator::get_instance()->validate_meaningful_file_real();
 }
 
 /**
@@ -307,7 +308,7 @@ void ecall_validate_file()
  */
 void ecall_validate_srd()
 {
-    validate_srd_real();
+    Validator::get_instance()->validate_srd_real();
 }
 
 /************************************Upgrade****************************************/

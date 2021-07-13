@@ -55,6 +55,7 @@ crust_status_t gen_and_upload_work_report(const char *block_hash, size_t block_h
 crust_status_t gen_work_report(const char *block_hash, size_t block_height, bool is_upgrading)
 {
     Workload *wl = Workload::get_instance();
+    Validator *vl = Validator::get_instance();
     crust_status_t crust_status = CRUST_SUCCESS;
     // Judge whether block height is expired
     if (block_height == 0 || wl->get_report_height() + REPORT_SLOT > block_height)
@@ -62,11 +63,11 @@ crust_status_t gen_work_report(const char *block_hash, size_t block_height, bool
         return CRUST_BLOCK_HEIGHT_EXPIRED;
     }
 
-    Defer defer_status([&wl, &block_height](void) {
+    Defer defer_status([&wl, &vl, &block_height](void) {
         wl->set_report_height(block_height);
         wl->set_report_file_flag(true);
         wl->reduce_restart_flag();
-        wl->report_reset_validated_proof();
+        vl->report_reset_validated_proof();
     });
 
     if (wl->get_restart_flag())
@@ -79,7 +80,7 @@ crust_status_t gen_work_report(const char *block_hash, size_t block_height, bool
         // Have files and no IPFS
         return CRUST_SERVICE_UNAVAILABLE;
     } 
-    if (!wl->report_has_validated_proof())
+    if (!vl->report_has_validated_proof())
     {
         // Judge whether the current data is validated 
         return CRUST_WORK_REPORT_NOT_VALIDATED;
