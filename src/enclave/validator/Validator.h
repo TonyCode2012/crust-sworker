@@ -32,10 +32,10 @@ public:
     void validate_srd_real();
     void validate_meaningful_file();
     void validate_meaningful_file_real();
-    void report_add_validated_srd_proof();
-    void report_add_validated_file_proof();
-    void report_reset_validated_proof();
-    bool report_has_validated_proof();
+    void validate_add_srd_proof();
+    void validate_add_file_proof();
+    void validate_reset_proof();
+    bool validate_has_proof();
 
 private:
     Validator() {}

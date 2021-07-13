@@ -67,7 +67,7 @@ crust_status_t gen_work_report(const char *block_hash, size_t block_height, bool
         wl->set_report_height(block_height);
         wl->set_report_file_flag(true);
         wl->reduce_restart_flag();
-        vl->report_reset_validated_proof();
+        vl->validate_reset_proof();
     });
 
     if (wl->get_restart_flag())
@@ -80,7 +80,7 @@ crust_status_t gen_work_report(const char *block_hash, size_t block_height, bool
         // Have files and no IPFS
         return CRUST_SERVICE_UNAVAILABLE;
     } 
-    if (!vl->report_has_validated_proof())
+    if (!vl->validate_has_proof())
     {
         // Judge whether the current data is validated 
         return CRUST_WORK_REPORT_NOT_VALIDATED;

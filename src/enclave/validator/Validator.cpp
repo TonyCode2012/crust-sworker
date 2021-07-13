@@ -114,7 +114,7 @@ void Validator::validate_srd()
         sl.lock();
         if (this->validated_srd_num >= this->validate_srd_m.size())
         {
-            this->report_add_validated_srd_proof();
+            this->validate_add_srd_proof();
             break;
         }
         sl.unlock();
@@ -368,7 +368,7 @@ void Validator::validate_meaningful_file()
         sl.lock();
         if (this->validated_files_num >= this->validate_files_m.size())
         {
-            this->report_add_validated_file_proof();
+            this->validate_add_file_proof();
             break;
         }
         sl.unlock();
@@ -622,7 +622,7 @@ void Validator::validate_meaningful_file_real()
 /**
  * @description: add validated srd proof
  */
-void Validator::report_add_validated_srd_proof()
+void Validator::validate_add_srd_proof()
 {
     sgx_thread_mutex_lock(&this->validated_srd_mutex);
     if (this->validated_srd_proof >= VALIDATE_PROOF_MAX_NUM)
@@ -639,7 +639,7 @@ void Validator::report_add_validated_srd_proof()
 /**
  * @description: add validated file proof
  */
-void Validator::report_add_validated_file_proof()
+void Validator::validate_add_file_proof()
 {
     sgx_thread_mutex_lock(&this->validated_file_mutex);
     if (this->validated_file_proof >= VALIDATE_PROOF_MAX_NUM)
@@ -656,7 +656,7 @@ void Validator::report_add_validated_file_proof()
 /**
  * @description: Reset validated proof
  */
-void Validator::report_reset_validated_proof()
+void Validator::validate_reset_proof()
 {
     sgx_thread_mutex_lock(&this->validated_srd_mutex);
     this->validated_srd_proof = 0;
@@ -671,7 +671,7 @@ void Validator::report_reset_validated_proof()
  * @description: Has validated proof
  * @return: true or false
  */
-bool Validator::report_has_validated_proof()
+bool Validator::validate_has_proof()
 {
     sgx_thread_mutex_lock(&this->validated_srd_mutex);
     bool res = (this->validated_srd_proof > 0);

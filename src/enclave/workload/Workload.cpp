@@ -588,7 +588,7 @@ crust_status_t Workload::can_report_work(size_t block_height)
         return CRUST_UPGRADE_BLOCK_EXPIRE;
     }
 
-    if (!Validator::get_instance()->report_has_validated_proof())
+    if (!Validator::get_instance()->validate_has_proof())
     {
         return CRUST_UPGRADE_NO_VALIDATE;
     }
