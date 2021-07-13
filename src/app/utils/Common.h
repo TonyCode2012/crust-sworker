@@ -41,10 +41,6 @@ extern "C"
     };
 
     UrlEndPoint get_url_end_point(std::string url);
-    void remove_chars_from_string(std::string &str, const char *chars_to_remove);
-    MerkleTree *deserialize_merkle_tree_from_json(json::JSON tree_json);
-    json::JSON serialize_merkletree_to_json(MerkleTree *root);
-    void free_merkletree(MerkleTree *root);
     std::string flat_urlformat(std::string &url);
     bool is_number(const std::string &s);
     void replace(std::string &data, std::string org_str, std::string det_str);

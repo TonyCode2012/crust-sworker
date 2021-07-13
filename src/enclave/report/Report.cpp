@@ -239,7 +239,7 @@ crust_status_t gen_work_report(const char *block_hash, size_t block_height, bool
     // Block height
     vector_end_insert(sig_buffer, block_height_str);
     // Block hash
-    uint8_t *block_hash_u = hex_string_to_bytes(block_hash, HASH_LENGTH * 2);
+    uint8_t *block_hash_u = hexstring_to_bytes(block_hash, HASH_LENGTH * 2);
     if (block_hash_u == NULL)
     {
         return CRUST_UNEXPECTED_ERROR;

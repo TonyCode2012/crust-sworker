@@ -107,7 +107,7 @@ crust_status_t srd_increase(const char *uuid)
     Workload *wl = Workload::get_instance();
 
     // Get uuid bytes
-    uint8_t *p_uuid_u = hex_string_to_bytes(uuid, UUID_LENGTH * 2);
+    uint8_t *p_uuid_u = hexstring_to_bytes(uuid, UUID_LENGTH * 2);
     if (p_uuid_u == NULL)
     {
         log_err("Get uuid bytes failed! Invalid uuid:%s\n", uuid);

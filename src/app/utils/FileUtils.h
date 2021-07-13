@@ -26,7 +26,7 @@ int rm_dir(const std::string &dir_full_path);
 int rm(const std::string &path);
 size_t get_free_space_under_directory(const std::string &path);
 crust_status_t rename_dir(const std::string &old_path, const std::string &new_path);
-crust_status_t create_directory(const std::string &path);
+crust_status_t create_dir(const std::string &path);
 std::vector<std::string> get_sub_folders_and_files(const char *path);
 crust_status_t get_file(const char *path, uint8_t **p_data, size_t *data_size);
 long get_file_size(const char *path, store_type_t type);

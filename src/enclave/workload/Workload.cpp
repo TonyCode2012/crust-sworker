@@ -313,7 +313,7 @@ crust_status_t Workload::restore_srd(json::JSON &g_hashs)
     for (auto it : g_hashs.ArrayRange())
     {
         std::string hex_g_hash = it.ToString();
-        uint8_t *g_hash = hex_string_to_bytes(hex_g_hash.c_str(), hex_g_hash.size());
+        uint8_t *g_hash = hexstring_to_bytes(hex_g_hash.c_str(), hex_g_hash.size());
         if (g_hash == NULL)
         {
             this->clean_srd();
@@ -491,7 +491,7 @@ crust_status_t Workload::restore_pre_pub_key(json::JSON &meta)
 
     sgx_ec256_public_t pre_pub_key;
     std::string pre_pub_key_str = meta[ID_PRE_PUB_KEY].ToString();
-    uint8_t *pre_pub_key_u = hex_string_to_bytes(pre_pub_key_str.c_str(), pre_pub_key_str.size());
+    uint8_t *pre_pub_key_u = hexstring_to_bytes(pre_pub_key_str.c_str(), pre_pub_key_str.size());
     if (pre_pub_key_u == NULL)
     {
         return CRUST_UNEXPECTED_ERROR;

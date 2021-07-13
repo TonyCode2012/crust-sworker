@@ -1422,7 +1422,7 @@ JSON parse_string(crust_status_t *status, const string &str, size_t &offset)
     if (memcmp(val.c_str(), HASH_TAG, strlen(HASH_TAG)) == 0)
     {
         val = val.substr(strlen(HASH_TAG), val.size());
-        uint8_t *p_hash = hex_string_to_bytes(val.c_str(), val.size());
+        uint8_t *p_hash = hexstring_to_bytes(val.c_str(), val.size());
         if (p_hash != NULL)
         {
             ans = p_hash;
@@ -1498,7 +1498,7 @@ JSON parse_string(crust_status_t *status, const uint8_t *p_data, size_t &offset)
     if (memcmp(val.c_str(), HASH_TAG, strlen(HASH_TAG)) == 0)
     {
         val = val.substr(strlen(HASH_TAG), val.size());
-        uint8_t *p_hash = hex_string_to_bytes(val.c_str(), val.size());
+        uint8_t *p_hash = hexstring_to_bytes(val.c_str(), val.size());
         if (p_hash != NULL)
         {
             ans = p_hash;

@@ -240,7 +240,7 @@ crust_status_t storage_seal_file(const char *root,
         return seal_ret;
     }
     sealed_path = std::string(uuid, UUID_LENGTH * 2) + sealed_path;
-    uint8_t *uuid_u = hex_string_to_bytes(uuid, UUID_LENGTH * 2);
+    uint8_t *uuid_u = hexstring_to_bytes(uuid, UUID_LENGTH * 2);
     if (uuid_u == NULL)
     {
         return CRUST_UNEXPECTED_ERROR;

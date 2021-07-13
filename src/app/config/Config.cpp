@@ -58,7 +58,7 @@ bool Config::init(std::string path)
         return false;
     }
     this->db_path = this->base_path + "/db";
-    if (CRUST_SUCCESS != (crust_status = create_directory(this->db_path)))
+    if (CRUST_SUCCESS != (crust_status = create_dir(this->db_path)))
     {
         p_log->err("Create path:'%s' failed! Error code:%lx\n", this->db_path.c_str(), crust_status);
         return false;
@@ -76,7 +76,7 @@ bool Config::init(std::string path)
     {
         std::string d_path = data_paths[i].ToString();
         this->org_data_paths.push_back(d_path);
-        if (CRUST_SUCCESS != (crust_status = create_directory(d_path)))
+        if (CRUST_SUCCESS != (crust_status = create_dir(d_path)))
         {
             p_log->err("Create path:'%s' failed! Error code:%lx\n", d_path.c_str(), crust_status);
             return false;
@@ -141,7 +141,7 @@ bool Config::init(std::string path)
     }
     // Backup
     std::string backup_temp = config_value["chain"]["backup"].ToString();
-    remove_chars_from_string(backup_temp, "\\");
+    remove_char(backup_temp, '\\');
     this->chain_backup = backup_temp;
     if (this->chain_backup.compare("") == 0)
     {

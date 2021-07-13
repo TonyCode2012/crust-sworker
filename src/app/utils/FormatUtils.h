@@ -18,7 +18,7 @@ extern "C"
 #endif
 
     int char_to_int(char input);
-    uint8_t *hex_string_to_bytes(const char *src, size_t len);
+    uint8_t *hexstring_to_bytes(const char *src, size_t len);
     int from_hexstring(unsigned char *dest, const void *src, size_t len);
     void print_hexstring(const void *vsrc, size_t len);
     char *hexstring(const void *src, size_t len);

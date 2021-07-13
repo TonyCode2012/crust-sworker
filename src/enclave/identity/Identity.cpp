@@ -508,7 +508,7 @@ crust_status_t id_verify_and_upload_identity(char **IASReport, size_t size)
     replace(certchain_1, "\n", "");
 
     string chain_account_id = wl->get_account_id();
-    uint8_t *p_account_id_u = hex_string_to_bytes(chain_account_id.c_str(), chain_account_id.size());
+    uint8_t *p_account_id_u = hexstring_to_bytes(chain_account_id.c_str(), chain_account_id.size());
     if (p_account_id_u == NULL)
     {
         return CRUST_UNEXPECTED_ERROR;
@@ -747,7 +747,7 @@ crust_status_t id_restore_metadata()
     log_debug("Load metadata successfully!\n");
     // Verify meta data
     std::string id_key_pair_str = meta_json[ID_KEY_PAIR].ToString();
-    uint8_t *p_id_key = hex_string_to_bytes(id_key_pair_str.c_str(), id_key_pair_str.size());
+    uint8_t *p_id_key = hexstring_to_bytes(id_key_pair_str.c_str(), id_key_pair_str.size());
     if (p_id_key == NULL)
     {
         log_err("Identity: Get id key pair failed!\n");
@@ -994,7 +994,7 @@ crust_status_t id_restore_from_upgrade(const uint8_t *data, size_t data_size)
     std::string report_height_str = upgrade_json[UPGRADE_BLOCK_HEIGHT].ToString();
     std::string report_hash_str = upgrade_json[UPGRADE_BLOCK_HASH].ToString();
     std::string a_pub_key_str = upgrade_json[UPGRADE_PUBLIC_KEY].ToString();
-    uint8_t *a_pub_key_u = hex_string_to_bytes(a_pub_key_str.c_str(), a_pub_key_str.size());
+    uint8_t *a_pub_key_u = hexstring_to_bytes(a_pub_key_str.c_str(), a_pub_key_str.size());
     if (a_pub_key_u == NULL)
     {
         return CRUST_UNEXPECTED_ERROR;
@@ -1051,7 +1051,7 @@ crust_status_t id_restore_from_upgrade(const uint8_t *data, size_t data_size)
             sgx_ecc256_close_context(ecc_state);
         }
     });
-    uint8_t *wl_sig_u = hex_string_to_bytes(wl_sig.c_str(), wl_sig.size());
+    uint8_t *wl_sig_u = hexstring_to_bytes(wl_sig.c_str(), wl_sig.size());
     if (wl_sig_u == NULL)
     {
         return CRUST_UNEXPECTED_ERROR;

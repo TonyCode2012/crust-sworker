@@ -271,7 +271,7 @@ size_t get_free_space_under_directory(const std::string &path)
  * @param path -> the directory path
  * @return: Create status
  */
-crust_status_t create_directory(const std::string &path)
+crust_status_t create_dir(const std::string &path)
 {
     if (path.size() == 0)
     {
@@ -437,7 +437,7 @@ crust_status_t save_file_ex(const char *path, const uint8_t *data, size_t data_s
         if (last_slash != 0 && last_slash != std::string::npos)
         {
             std::string dir_path = path_str.substr(0, last_slash);
-            if (CRUST_SUCCESS != (crust_status = create_directory(dir_path)))
+            if (CRUST_SUCCESS != (crust_status = create_dir(dir_path)))
             {
                 return crust_status;
             }

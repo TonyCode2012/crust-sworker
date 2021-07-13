@@ -70,11 +70,7 @@ int log_debug(const char* fmt, ...);
 int char_to_int(char input);
 char *hexstring(const void *vsrc, size_t len);
 std::string hexstring_safe(const void *vsrc, size_t len);
-uint8_t *hex_string_to_bytes(const void *src, size_t len);
-std::string unsigned_char_array_to_hex_string(const unsigned char *in, size_t size);
-std::vector<unsigned char> unsigned_char_array_to_unsigned_char_vector(const unsigned char *in, size_t size);
-char* unsigned_char_to_hex(unsigned char in);
-std::string byte_vec_to_string(std::vector<uint8_t> bytes);
+uint8_t *hexstring_to_bytes(const void *src, size_t len);
 
 sgx_status_t Sgx_seal_data(const uint32_t additional_MACtext_length,
                            const uint8_t *p_additional_MACtext, const uint32_t text2encrypt_length,
@@ -93,7 +89,6 @@ crust_status_t seal_data_mrenclave(const uint8_t *p_src, size_t src_len, sgx_sea
 crust_status_t seal_data_mrsigner(const uint8_t *p_src, size_t src_len, sgx_sealed_data_t **p_sealed_data, size_t *sealed_data_size);
 crust_status_t unseal_data_mrsigner(const sgx_sealed_data_t *data, uint32_t data_size, uint8_t **p_decrypted_data, uint32_t *decrypted_data_len);
 
-crust_status_t validate_merkletree_json(json::JSON tree);
 void *enc_malloc(size_t size);
 void *enc_realloc(void *p, size_t size);
 void *enc_crealloc(void *p, size_t old_size, size_t new_size);

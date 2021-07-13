@@ -210,23 +210,13 @@ std::string hexstring_safe(const void *vsrc, size_t len)
 }
 
 /**
- * @description: Byte vector to string
- * @param bytes -> Byte vector
- * @return: Hexstring of byte vector
- */
-std::string byte_vec_to_string(std::vector<uint8_t> bytes)
-{
-    return hexstring_safe(bytes.data(), bytes.size());
-}
-
-/**
  * @description: Convert hexstring to bytes array, note that
  * the size of got data is half of len
  * @param src -> Source char*
  * @param len -> Source char* length
  * @return: Bytes array
  */
-uint8_t *hex_string_to_bytes(const void *src, size_t len)
+uint8_t *hexstring_to_bytes(const void *src, size_t len)
 {
     if (len % 2 != 0 || len == 0)
     {
@@ -249,75 +239,6 @@ uint8_t *hex_string_to_bytes(const void *src, size_t len)
     }
 
     return p_target;
-}
-
-/**
- * @description: convert byte array to hex string
- * @param in -> byte array
- * @param size -> the size of byte array
- * @return: hex string
- */
-std::string unsigned_char_array_to_hex_string(const unsigned char *in, size_t size)
-{
-    char *result = new char[size * 2 + 1];
-    size_t now_pos = 0;
-
-    for (size_t i = 0; i < size; i++)
-    {
-        char *temp = unsigned_char_to_hex(in[i]);
-        result[now_pos++] = temp[0];
-        result[now_pos++] = temp[1];
-        delete[] temp;
-    }
-
-    result[now_pos] = '\0';
-
-    std::string out_str(result);
-    delete[] result;
-    return out_str;
-}
-
-/**
- * @description: convert byte array to byte vector
- * @param in -> byte array
- * @param size -> the size of byte array
- * @return: byte vector
- */
-std::vector<unsigned char> unsigned_char_array_to_unsigned_char_vector(const unsigned char *in, size_t size)
-{
-    std::vector<unsigned char> out(size);
-    std::copy(in, in + size, out.begin());
-    return out;
-}
-
-/**
- * @description: convert byte to hex char array
- * @param in -> byte
- * @return: hex char array
- */
-char *unsigned_char_to_hex(const unsigned char in)
-{
-    char *result = new char[2];
-
-    if (in / 16 < 10)
-    {
-        result[0] = (char)(in / 16 + '0');
-    }
-    else
-    {
-        result[0] = (char)(in / 16 - 10 + 'a');
-    }
-
-    if (in % 16 < 10)
-    {
-        result[1] = (char)(in % 16 + '0');
-    }
-    else
-    {
-        result[1] = (char)(in % 16 - 10 + 'a');
-    }
-
-    return result;
 }
 
 /**
@@ -413,85 +334,6 @@ crust_status_t seal_data_mrsigner(const uint8_t *p_src, size_t src_len,
     }
 
     *sealed_data_size = (size_t)sealed_data_sz;
-
-    return crust_status;
-}
-
-/**
- * @description: Validate merkle tree in json format
- * @param tree -> Merkle tree json format
- * @return: Validate status
- */
-crust_status_t validate_merkletree_json(json::JSON tree)
-{
-    if (tree[MT_LINKS].size() == 0)
-    {
-        return CRUST_SUCCESS;
-    }
-
-    if (tree[MT_LINKS].size() < 0)
-    {
-        return CRUST_UNEXPECTED_ERROR;
-    }
-
-    crust_status_t crust_status = CRUST_SUCCESS;
-    sgx_sha256_hash_t parent_hash;
-    uint8_t *parent_hash_org = NULL;
-    uint8_t *parent_data_hash = NULL;
-
-    // Validate sub tree and get all sub trees hash data
-    size_t children_buffer_size = tree[MT_LINKS].size() * HASH_LENGTH;
-    uint8_t *children_hashs = (uint8_t *)enc_malloc(children_buffer_size);
-    if (children_hashs == NULL)
-    {
-        return CRUST_MALLOC_FAILED;
-    }
-    memset(children_hashs, 0, children_buffer_size);
-    for (int i = 0; i < tree[MT_LINKS].size(); i++)
-    {
-        if (tree[MT_LINKS][i].hasKey(MT_LINKS))
-        {
-            if (validate_merkletree_json(tree[MT_LINKS][i]) != CRUST_SUCCESS)
-            {
-                crust_status = CRUST_INVALID_MERKLETREE;
-                goto cleanup;
-            }
-        }
-        std::string hash;
-        hash = tree[MT_LINKS][i][MT_DATA_HASH].ToString();
-        uint8_t *tmp_hash = hex_string_to_bytes(hash.c_str(), hash.size());
-        if (tmp_hash == NULL)
-        {
-            crust_status = CRUST_UNEXPECTED_ERROR;
-            goto cleanup;
-        }
-        memcpy(children_hashs + i * HASH_LENGTH, tmp_hash, HASH_LENGTH);
-        free(tmp_hash);
-    }
-
-    // Compute and compare hash value
-    sgx_sha256_msg(children_hashs, children_buffer_size, &parent_hash);
-    parent_hash_org = hex_string_to_bytes(tree[MT_HASH].ToString().c_str(), HASH_LENGTH * 2);
-    if (parent_hash_org == NULL)
-    {
-        crust_status = CRUST_MALLOC_FAILED;
-        goto cleanup;
-    }
-    if (memcmp(parent_hash_org, parent_hash, HASH_LENGTH) != 0)
-    {
-        crust_status = CRUST_NOT_EQUAL;
-        goto cleanup;
-    }
-
-cleanup:
-    if (parent_data_hash != NULL)
-        free(parent_data_hash);
-
-    if (children_hashs != NULL)
-        free(children_hashs);
-
-    if (parent_hash_org != NULL)
-        free(parent_hash_org);
 
     return crust_status;
 }

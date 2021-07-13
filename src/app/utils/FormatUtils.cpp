@@ -26,7 +26,7 @@ int char_to_int(char input)
  * @param len -> Source char* length
  * @return: Bytes array
  */
-uint8_t *hex_string_to_bytes(const char *src, size_t len)
+uint8_t *hexstring_to_bytes(const char *src, size_t len)
 {
     if(len % 2 != 0)
     {

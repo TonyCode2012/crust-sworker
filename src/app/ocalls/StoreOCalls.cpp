@@ -12,7 +12,7 @@ crust_status_t ocall_create_dir(const char *path, store_type_t type)
 {
     std::string r_path = get_real_path_by_type(path, type);
 
-    return create_directory(r_path);
+    return create_dir(r_path);
 }
 
 /**

@@ -125,7 +125,7 @@ bool initialize_enclave()
 bool initialize_components(void)
 {
     // Create path
-    if (CRUST_SUCCESS != create_directory(p_config->base_path))
+    if (CRUST_SUCCESS != create_dir(p_config->base_path))
     {
         p_log->err("Create base path failed!!\n");
         return false;
