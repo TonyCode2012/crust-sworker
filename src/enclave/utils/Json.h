@@ -40,6 +40,8 @@ using std::string;
 
 const uint32_t _hash_length = 32;
 const string FIO_SEPARATER = "-";
+const string FIO_KEY = "key";
+const string FIO_VAL = "val";
 
 namespace
 {
@@ -237,6 +239,11 @@ public:
         typename Container::iterator end() { return object ? object->end() : typename Container::iterator(); }
         typename Container::const_iterator begin() const { return object ? object->begin() : typename Container::iterator(); }
         typename Container::const_iterator end() const { return object ? object->end() : typename Container::iterator(); }
+
+        typename Container::reverse_iterator rbegin() { return object ? object->rbegin() : typename Container::reverse_iterator(); }
+        typename Container::reverse_iterator rend() { return object ? object->rend() : typename Container::reverse_iterator(); }
+        typename Container::const_reverse_iterator rbegin() const { return object ? object->rbegin() : typename Container::reverse_iterator(); }
+        typename Container::const_reverse_iterator rend() const { return object ? object->rend() : typename Container::reverse_iterator(); }
     };
 
     template <typename Container>
@@ -473,14 +480,15 @@ public:
         if (Type == Class::FIOObject)
         {
             string rkey;
-            if (Internal.Map->find(key) != Internal.Map->end())
+            if ((*Internal.Map)[FIO_KEY].hasKey(key))
             {
-                rkey = Internal.Map->operator[](key).ToString();
+                rkey = (*Internal.Map)[FIO_KEY][key].ToString();
             }
             else
             {
                 rkey = "0" + FIO_SEPARATER + key;
-                for (auto rit = Internal.Map->rbegin(); rit != Internal.Map->rend(); rit++)
+                for (auto rit = (*Internal.Map)[FIO_VAL].ObjectRange().rbegin(); 
+                        rit != (*Internal.Map)[FIO_VAL].ObjectRange().rend(); rit++)
                 {
                     string tkey = rit->first;
                     size_t spos = tkey.find_first_of(FIO_SEPARATER);
@@ -503,9 +511,9 @@ public:
                         }
                     }
                 }
-                Internal.Map->operator[](key) = rkey;
+                (*Internal.Map)[FIO_KEY][key] = rkey;
             }
-            return Internal.Map->operator[](rkey);
+            return (*Internal.Map)[FIO_VAL][rkey];
         }
         return Internal.Map->operator[](key);
     }
@@ -638,7 +646,7 @@ public:
         if (Type == Class::Object)
             return Internal.Map->find(key) != Internal.Map->end();
         else if (Type == Class::FIOObject)
-            return Internal.Map->find(key) != Internal.Map->end();
+            return (*Internal.Map)[FIO_KEY].hasKey(key);
         return false;
     }
 
@@ -650,11 +658,11 @@ public:
         }
         else if (Type == Class::FIOObject)
         {
-            if (Internal.Map->find(key) != Internal.Map->end())
+            if ((*Internal.Map)[FIO_KEY].hasKey(key))
             {
-                string rkey = Internal.Map->operator[](key).ToString();
-                Internal.Map->erase(key);
-                Internal.Map->erase(rkey);
+                string rkey = (*Internal.Map)[FIO_KEY][key].ToString();
+                (*Internal.Map)[FIO_KEY].erase(key);
+                (*Internal.Map)[FIO_VAL].erase(rkey);
             }
         }
     }
@@ -664,7 +672,7 @@ public:
         if (Type == Class::Object)
             return (long)Internal.Map->size();
         else if (Type == Class::FIOObject)
-            return (long)Internal.Map->size();
+            return (long)(*Internal.Map)[FIO_KEY].size();
         else if (Type == Class::Array)
             return (long)Internal.List->size();
         else if (Type == Class::Hash)
@@ -880,7 +888,7 @@ public:
         {
             v.push_back('{');
             bool skip = true;
-            for (auto &p : *Internal.Map)
+            for (auto &p : (*Internal.Map)[FIO_VAL].ObjectRange())
             {
                 string key = p.first;
                 size_t pos = key.find_first_of(FIO_SEPARATER);
@@ -996,7 +1004,7 @@ public:
         {
             string s = "{\n";
             bool skip = true;
-            for (auto &p : *Internal.Map)
+            for (auto &p : (*Internal.Map)[FIO_VAL].ObjectRange())
             {
                 string key = p.first;
                 size_t pos = key.find_first_of(FIO_SEPARATER);
@@ -1072,6 +1080,8 @@ private:
             break;
         case Class::FIOObject:
             Internal.Map = new map<string, JSON>();
+            (*Internal.Map)[FIO_KEY] = std::move(JSON::Make(JSON::Class::Object));
+            (*Internal.Map)[FIO_VAL] = std::move(JSON::Make(JSON::Class::Object));
             break;
         case Class::Array:
             Internal.List = new deque<JSON>();
